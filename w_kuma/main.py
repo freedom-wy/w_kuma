@@ -4,17 +4,21 @@ import sys
 import os
 import subprocess
 from multiprocessing import cpu_count
+import tempfile
 
 
 class Wkuma(object):
     def __init__(self, domain):
-        self.enable_brute = True
         self.result = {}
         self.domain = domain
         self.subdomain_dict_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), subdomain_dict_path)
         self.subdomain_dict_file_list = self.split_subdomain_dict_file()
 
     def split_subdomain_dict_file(self):
+        """
+        分割字典文件
+        :return:
+        """
         tmp = []
         prefix = "split_subdomain"
         if subdomain_flag == "FULL":
@@ -67,6 +71,7 @@ class Wkuma(object):
         子域名爆破
         :return:
         """
+        aiodnsbrute_process_list = []
         # 1、查找aiodnsbrute路径
         aiodnsbrute_path = self.aiodnsbrute_path()
         if not aiodnsbrute_path:
@@ -76,6 +81,7 @@ class Wkuma(object):
         # 处理子域名文件
         # aiodnsbrute执行命令
         for subdomain_dict_file in self.subdomain_dict_file_list:
+            output_file = tempfile.mktemp()
             aiodnsbrute_work_cmd = "{aiodnsbrute_program} -w {brute_dict} -r {dns_server_list} -f {output_file} -o json -t 5000 --no-verify {domain}".format(
                 aiodnsbrute_program=aiodnsbrute_program,
                 brute_dict=subdomain_dict_file,
@@ -83,8 +89,9 @@ class Wkuma(object):
                 output_file="aiodnsbrute_result.json",
                 domain=self.domain
             )
-            # pass
-            # subprocess.Popen(aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            aiodnsbrute_process_list.append({subprocess.Popen(
+                aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL): output_file})
+        return aiodnsbrute_process_list
 
     def wildcard_lookup(self):
         """
@@ -101,7 +108,13 @@ class Wkuma(object):
         pass
 
     def run(self):
-        pass
+        # 子域名爆破
+        brute_process_list = self.subdomain_brute()
+        while brute_process_list[:]:
+            for item in brute_process_list:
+                for k, v in item.items():
+                    if k.poll() == 0:
+                        brute_process_list.remove(item)
 
 
 def main():
@@ -109,7 +122,7 @@ def main():
     :return:
     """
     w = Wkuma(domain="baidu.com")
-    w.subdomain_brute()
+    w.run()
 
 
 if __name__ == '__main__':
