@@ -4,7 +4,7 @@ import sys
 import os
 import subprocess
 from multiprocessing import cpu_count
-import tempfile
+import time
 
 
 class Wkuma(object):
@@ -78,19 +78,19 @@ class Wkuma(object):
             raise ModuleNotFoundError("aiodnsbrute包未安装")
         aiodnsbrute_program = "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 {python_interpreter} {aiodnsbrute_program}".format(
             python_interpreter=sys.executable, aiodnsbrute_program=aiodnsbrute_path)
-        # 处理子域名文件
         # aiodnsbrute执行命令
         for subdomain_dict_file in self.subdomain_dict_file_list:
-            output_file = tempfile.mktemp()
+            subdomain_brute_output_filename = "subdomain_brute_{}".format(int(time.time()))
             aiodnsbrute_work_cmd = "{aiodnsbrute_program} -w {brute_dict} -r {dns_server_list} -f {output_file} -o json -t 5000 --no-verify {domain}".format(
                 aiodnsbrute_program=aiodnsbrute_program,
                 brute_dict=subdomain_dict_file,
                 dns_server_list=dns_server_filename,
-                output_file="aiodnsbrute_result.json",
+                output_file=subdomain_brute_output_filename,
                 domain=self.domain
             )
+            print(aiodnsbrute_work_cmd)
             aiodnsbrute_process_list.append({subprocess.Popen(
-                aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL): output_file})
+                aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL): subdomain_brute_output_filename})
         return aiodnsbrute_process_list
 
     def wildcard_lookup(self):
@@ -111,19 +111,26 @@ class Wkuma(object):
         # 子域名爆破
         brute_process_list = self.subdomain_brute()
         while brute_process_list[:]:
+            time.sleep(1)
             for item in brute_process_list:
                 for k, v in item.items():
                     if k.poll() == 0:
                         brute_process_list.remove(item)
+        # 处理aiodnsbrute输出文件,文件内容为列表
+        pass
+        # 删除aiodnsbrute输出文件
+        # subprocess.check_call("cd {work_dir} && rm -f {prefix}* && split -l {line_num} {raw_file} {prefix}"
+        #                       .format(work_dir=self.subdomain_dict_path, line_num=lines_in_each_file,
+        #                               raw_file=subdomain_dict_file, prefix=prefix), shell=True)
 
 
-def main():
+def main(target):
     """
     :return:
     """
-    w = Wkuma(domain="baidu.com")
-    w.run()
+    w = Wkuma(domain=target)
+    w.split_subdomain_dict_file()
 
 
 if __name__ == '__main__':
-    main()
+    main("baidu.com")
