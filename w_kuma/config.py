@@ -7,6 +7,6 @@ subdomain_filename = "subnames_full.txt"
 # top子域名字典
 top_subdomain_filename = "subnames_sub.txt"
 # 子域名字典开关,FULL或SUB
-subdomain_flag = "FULL"
+subdomain_flag = "SUB"
 # 子域名字典文件目录名称
 subdomain_dict_path = "subdomain_dict_file"
