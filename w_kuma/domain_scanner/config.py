@@ -1,3 +1,6 @@
+"""
+配置文件
+"""
 # 是否开启子域名爆破
 enable_brute = True
 # dns文件名称
@@ -9,4 +12,4 @@ top_subdomain_filename = "subnames_sub.txt"
 # 子域名字典开关,FULL或SUB
 subdomain_flag = "SUB"
 # 子域名字典文件目录名称
-subdomain_dict_path = "subdomain_dict_file"
+subdomain_dict_path = "domain_resource"
