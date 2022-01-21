@@ -95,7 +95,8 @@ class Wkuma(object):
             os.mkdir(self.aiodnsbrute_temp_path)
         # aiodnsbrute执行命令
         for subdomain_dict_file in self.subdomain_dict_file_list:
-            subdomain_brute_output_filename = os.path.join(self.aiodnsbrute_temp_path, "subdomain_brute_{}".format(int(time.time())))
+            subdomain_brute_output_filename = os.path.join(self.aiodnsbrute_temp_path,
+                                                           "subdomain_brute_{}".format(int(time.time())))
             aiodnsbrute_work_cmd = "{aiodnsbrute_program} -w {brute_dict} -r {dns_server_list} -f {output_file} -o json -t 5000 --no-verify {domain}".format(
                 aiodnsbrute_program=aiodnsbrute_program,
                 brute_dict=subdomain_dict_file,
@@ -128,21 +129,20 @@ class Wkuma(object):
         # 子域名爆破
         brute_process_list = self.subdomain_brute()
         while brute_process_list[:]:
-            print(len(brute_process_list))
+            # print(len(brute_process_list))
             time.sleep(1)
             for item in brute_process_list:
                 for k, v in item.items():
-                    print(k.poll())
+                    # print(k.poll())
                     if k.poll() is None:
                         continue
                     elif k.poll() == 0:
                         brute_process_list.remove(item)
                         with open(v, "r", encoding="utf-8") as f:
                             aiodnsbrute_result_list.extend(f)
-        print(aiodnsbrute_result_list)
-        time.sleep(10)
+        # print(aiodnsbrute_result_list)
         shutil.rmtree(self.aiodnsbrute_temp_path)
-
+        # ['[{"domain": "m.baidu.com", "ip": ["220.181.38.129", "220.181.38.130"]}, {"domain": "vpn.baidu.com", "ip": ["220.181.50.162", "220.181.50.247", "220.181.3.195", "220.181.3.196", "220.181.50.248", "220.181.3.194"]}, {"domain": "mail.baidu.com", "ip": ["220.181.3.87"]}, {"domain": "www.baidu.com", "ip": ["220.181.38.150", "220.181.38.149"]}, {"domain": "ns1.baidu.com", "ip": ["110.242.68.134"]}, {"domain": "ns2.baidu.com", "ip": ["220.181.33.31"]}]']
 
 
 def main(target):
