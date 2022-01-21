@@ -3,6 +3,11 @@
 1、子域名爆破
 2、泛解析
 3、通过api接口获取子域名
+
+处理逻辑
+1、通过泛解析ip裁剪一次数据
+2、域名Ip数大于1判定为cdn
+3、剩余数据为最终数据
 """
 
 import math
@@ -85,6 +90,7 @@ class Wkuma(object):
         :return:
         """
         aiodnsbrute_process_list = []
+        aiodnsbrute_result_list = []
         # 1、查找aiodnsbrute路径
         aiodnsbrute_path = self.aiodnsbrute_path()
         if not aiodnsbrute_path:
@@ -108,7 +114,21 @@ class Wkuma(object):
             aiodnsbrute_process_list.append({subprocess.Popen(
                 aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL): subdomain_brute_output_filename})
-        return aiodnsbrute_process_list
+        while aiodnsbrute_process_list[:]:
+            # print(len(brute_process_list))
+            time.sleep(1)
+            for item in aiodnsbrute_process_list:
+                for k, v in item.items():
+                    # print(k.poll())
+                    if k.poll() is None:
+                        continue
+                    elif k.poll() == 0:
+                        aiodnsbrute_process_list.remove(item)
+                        with open(v, "r", encoding="utf-8") as f:
+                            aiodnsbrute_result_list.extend(f)
+        shutil.rmtree(self.aiodnsbrute_temp_path)
+        # ['[{"domain": "m.baidu.com", "ip": ["220.181.38.129", "220.181.38.130"]}, {"domain": "vpn.baidu.com", "ip": ["220.181.50.162", "220.181.50.247", "220.181.3.195", "220.181.3.196", "220.181.50.248", "220.181.3.194"]}, {"domain": "mail.baidu.com", "ip": ["220.181.3.87"]}, {"domain": "www.baidu.com", "ip": ["220.181.38.150", "220.181.38.149"]}, {"domain": "ns1.baidu.com", "ip": ["110.242.68.134"]}, {"domain": "ns2.baidu.com", "ip": ["220.181.33.31"]}]']
+        return aiodnsbrute_result_list
 
     def wildcard_lookup(self):
         """
@@ -125,24 +145,7 @@ class Wkuma(object):
         pass
 
     def run(self):
-        aiodnsbrute_result_list = []
-        # 子域名爆破
-        brute_process_list = self.subdomain_brute()
-        while brute_process_list[:]:
-            # print(len(brute_process_list))
-            time.sleep(1)
-            for item in brute_process_list:
-                for k, v in item.items():
-                    # print(k.poll())
-                    if k.poll() is None:
-                        continue
-                    elif k.poll() == 0:
-                        brute_process_list.remove(item)
-                        with open(v, "r", encoding="utf-8") as f:
-                            aiodnsbrute_result_list.extend(f)
-        # print(aiodnsbrute_result_list)
-        shutil.rmtree(self.aiodnsbrute_temp_path)
-        # ['[{"domain": "m.baidu.com", "ip": ["220.181.38.129", "220.181.38.130"]}, {"domain": "vpn.baidu.com", "ip": ["220.181.50.162", "220.181.50.247", "220.181.3.195", "220.181.3.196", "220.181.50.248", "220.181.3.194"]}, {"domain": "mail.baidu.com", "ip": ["220.181.3.87"]}, {"domain": "www.baidu.com", "ip": ["220.181.38.150", "220.181.38.149"]}, {"domain": "ns1.baidu.com", "ip": ["110.242.68.134"]}, {"domain": "ns2.baidu.com", "ip": ["220.181.33.31"]}]']
+        pass
 
 
 def main(target):
