@@ -1,26 +1,38 @@
-"""
-域名扫描
-1、子域名爆破
-2、泛解析
-3、通过api接口获取子域名
-
-处理逻辑
-1、通过泛解析ip裁剪一次数据
-2、域名Ip数大于1判定为cdn
-3、剩余数据为最终数据
-"""
-
-import math
-import shutil
-from config import *
-import sys
 import os
 import subprocess
+import uuid
 from multiprocessing import cpu_count
-import time
+import math
+from config import *
+from w_kuma.libs.venv_utils import is_venv
+import sys
+from aiodnsbrute.cli import aioDNSBrute
 
 
-class Wkuma(object):
+class SingleSubDomainData(object):
+    """
+    规范输出
+    """
+
+    def __init__(self, subdomain_info):
+        self.subdomain = subdomain_info.get("subdomain")
+        self.ip = ",".join(subdomain_info.get("ip"))
+        self.subdomain_flag = subdomain_info.get("subdomain_flag")
+
+
+class CollectionSubDomainData(object):
+    def __init__(self):
+        self.total = 0
+        self.subdomains = []
+        self.domain = None
+
+    def fill(self, subdomains, domain):
+        self.total = len(subdomains.get("result"))
+        self.subdomains = [SingleSubDomainData(subdomain_info) for subdomain_info in subdomains.get("result")]
+        self.domain = domain
+
+
+class DomainScan(object):
     def __init__(self, domain):
         self.result = {}
         self.domain = domain
@@ -29,14 +41,23 @@ class Wkuma(object):
         # 子域名字典目录
         self.subdomain_dict_path = os.path.join(self.work_dir, subdomain_dict_path)
         # 分割字典文件
-        self.subdomain_dict_file_list = self.split_subdomain_dict_file()
-        self.aiodnsbrute_temp_path = os.path.join(self.work_dir, "temp")
+        self.subdomain_dict_file_list = self.__split_subdomain_dict_file()
+        # 泛解析字典
+        self.wildcard_dict_path = os.path.join(self.subdomain_dict_path, "wildcard.txt")
 
-    def split_subdomain_dict_file(self):
+    @staticmethod
+    def __aiodnsbrute_path():
         """
-        分割字典文件
+        输出aiodnsbrute程序路径
         :return:
         """
+        if is_venv():
+            aiodnsbrute_path = os.path.join(os.path.dirname(sys.executable), "aiodnsbrute")
+        else:
+            aiodnsbrute_path = "/usr/local/bin/aiodnsbrute"
+        return aiodnsbrute_path
+
+    def __split_subdomain_dict_file(self):
         tmp = []
         prefix = "split_subdomain"
         if subdomain_flag == "FULL":
@@ -65,81 +86,32 @@ class Wkuma(object):
             tmp.append(subdomain_dict_top_file)
         return tmp
 
-    def aiodnsbrute_path(self):
-        """
-        输出aiodnsbrute程序路径
-        :return:
-        """
-        if self.is_venv():
-            aiodnsbrute_path = os.path.join(os.path.dirname(sys.executable), "aiodnsbrute")
-        else:
-            aiodnsbrute_path = "/usr/local/bin/aiodnsbrute"
-        return aiodnsbrute_path
-
-    @staticmethod
-    def is_venv():
-        """
-        判断当前环境是否为虚拟环境
-        :return:
-        """
-        return hasattr(sys, "real_prefix") or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix)
-
     def subdomain_brute(self):
         """
         子域名爆破
         :return:
         """
-        aiodnsbrute_process_list = []
         aiodnsbrute_result_list = []
-        # 1、查找aiodnsbrute路径
-        aiodnsbrute_path = self.aiodnsbrute_path()
-        if not aiodnsbrute_path:
-            raise ModuleNotFoundError("aiodnsbrute包未安装")
-        aiodnsbrute_program = "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 {python_interpreter} {aiodnsbrute_program}".format(
-            python_interpreter=sys.executable, aiodnsbrute_program=aiodnsbrute_path)
-        if not os.path.exists(self.aiodnsbrute_temp_path):
-            os.mkdir(self.aiodnsbrute_temp_path)
-        # aiodnsbrute执行命令
-        for subdomain_dict_file in self.subdomain_dict_file_list:
-            subdomain_brute_output_filename = os.path.join(self.aiodnsbrute_temp_path,
-                                                           "subdomain_brute_{}".format(int(time.time())))
-            aiodnsbrute_work_cmd = "{aiodnsbrute_program} -w {brute_dict} -r {dns_server_list} -f {output_file} -o json -t 5000 --no-verify {domain}".format(
-                aiodnsbrute_program=aiodnsbrute_program,
-                brute_dict=subdomain_dict_file,
-                dns_server_list=dns_server_filename,
-                output_file=subdomain_brute_output_filename,
-                domain=self.domain
-            )
-            print(aiodnsbrute_work_cmd)
-            aiodnsbrute_process_list.append({subprocess.Popen(
-                aiodnsbrute_work_cmd, shell=True, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL): subdomain_brute_output_filename})
-        while aiodnsbrute_process_list[:]:
-            # print(len(brute_process_list))
-            time.sleep(1)
-            for item in aiodnsbrute_process_list:
-                for k, v in item.items():
-                    # print(k.poll())
-                    if k.poll() is None:
-                        continue
-                    elif k.poll() == 0:
-                        aiodnsbrute_process_list.remove(item)
-                        with open(v, "r", encoding="utf-8") as f:
-                            aiodnsbrute_result_list.extend(f)
-        shutil.rmtree(self.aiodnsbrute_temp_path)
-        # ['[{"domain": "m.baidu.com", "ip": ["220.181.38.129", "220.181.38.130"]}, {"domain": "vpn.baidu.com", "ip": ["220.181.50.162", "220.181.50.247", "220.181.3.195", "220.181.3.196", "220.181.50.248", "220.181.3.194"]}, {"domain": "mail.baidu.com", "ip": ["220.181.3.87"]}, {"domain": "www.baidu.com", "ip": ["220.181.38.150", "220.181.38.149"]}, {"domain": "ns1.baidu.com", "ip": ["110.242.68.134"]}, {"domain": "ns2.baidu.com", "ip": ["220.181.33.31"]}]']
+        for file in self.subdomain_dict_file_list:
+            result = aioDNSBrute().run(wordlist=file, domain=self.domain, resolvers=dns_server_list, verify=False)
+            aiodnsbrute_result_list.extend(result)
         return aiodnsbrute_result_list
 
-    def wildcard_lookup(self):
+    def subdomain_wildcard_lookup(self):
         """
-        泛解析
+        子域名泛解析
         :return:
         """
-        pass
+        wildcard_lookup_result_set = set()
+        result = aioDNSBrute().run(wordlist=self.wildcard_dict_path, domain=self.domain, resolvers=dns_server_list, verify=False)
+        print(result)
 
-    def api_lookup(self):
+
+
+    def subdomain_api(self):
         """
-        通过api接口
+        通过API接口获取
+        :param domain:
         :return:
         """
         pass
@@ -148,13 +120,11 @@ class Wkuma(object):
         pass
 
 
-def main(target):
-    """
-    :return:
-    """
-    w = Wkuma(domain=target)
-    w.run()
+def main(domain):
+    # result = DomainScan(domain=domain).subdomain_brute()
+    result = DomainScan(domain=domain).subdomain_wildcard_lookup()
+    print(result)
 
 
 if __name__ == '__main__':
-    main("baidu.com")
+    main(domain="taobao.com")
