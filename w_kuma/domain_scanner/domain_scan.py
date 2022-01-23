@@ -2,7 +2,7 @@ import os
 import subprocess
 from multiprocessing import cpu_count
 import math
-from config import *
+from w_kuma.config import *
 from w_kuma.libs.venv_utils import is_venv
 import sys
 from aiodnsbrute.cli import aioDNSBrute
@@ -42,13 +42,13 @@ class DomainScan(object):
     def __init__(self, domain):
         self.domain = domain
         # 工作目录
-        self.work_dir = os.path.dirname(os.path.abspath(__file__))
+        self.__work_dir = os.path.dirname(os.path.abspath(__file__))
         # 子域名字典目录
-        self.subdomain_dict_path = os.path.join(self.work_dir, subdomain_dict_path)
+        self.__subdomain_dict_path = os.path.join(self.__work_dir, subdomain_dict_path)
         # 分割字典文件
-        self.subdomain_dict_file_list = self.__split_subdomain_dict_file()
+        self.__subdomain_dict_file_list = self.__split_subdomain_dict_file()
         # 泛解析字典
-        self.wildcard_dict_path = os.path.join(self.subdomain_dict_path, "wildcard.txt")
+        self.__wildcard_dict_path = os.path.join(self.__subdomain_dict_path, "wildcard.txt")
 
     @staticmethod
     def __aiodnsbrute_path():
@@ -67,27 +67,27 @@ class DomainScan(object):
         prefix = "split_subdomain"
         if subdomain_flag == "FULL":
             # 分割字典文件
-            subdomain_dict_file = os.path.join(self.subdomain_dict_path, subdomain_filename)
+            subdomain_dict_file = os.path.join(self.__subdomain_dict_path, subdomain_filename)
             try:
                 dict_lines_count = int(
                     subprocess.check_output("wc -l {}".format(subdomain_dict_file), shell=True).strip().split()[0])
             except Exception as e:
-                subdomain_dict_file = os.path.join(self.subdomain_dict_path, top_subdomain_filename)
+                subdomain_dict_file = os.path.join(self.__subdomain_dict_path, top_subdomain_filename)
                 tmp.append(subdomain_dict_file)
             else:
                 cpu_num = max(cpu_count() - 1, 1)
                 lines_in_each_file = math.ceil(dict_lines_count / cpu_num)
                 # 分割文件
                 subprocess.check_call("cd {work_dir} && rm -f {prefix}* && split -l {line_num} {raw_file} {prefix}"
-                                      .format(work_dir=self.subdomain_dict_path, line_num=lines_in_each_file,
+                                      .format(work_dir=self.__subdomain_dict_path, line_num=lines_in_each_file,
                                               raw_file=subdomain_dict_file, prefix=prefix), shell=True)
-                for root, dirs, files in os.walk(self.subdomain_dict_path):
+                for root, dirs, files in os.walk(self.__subdomain_dict_path):
                     for file in files:
                         if file.startswith(prefix):
                             tmp.append(os.path.join(root, file))
         elif subdomain_flag == "SUB":
             # 加载top子域名文件
-            subdomain_dict_top_file = os.path.join(self.subdomain_dict_path, top_subdomain_filename)
+            subdomain_dict_top_file = os.path.join(self.__subdomain_dict_path, top_subdomain_filename)
             tmp.append(subdomain_dict_top_file)
         return tmp
 
@@ -97,7 +97,7 @@ class DomainScan(object):
         :return:
         """
         aiodnsbrute_result_list = []
-        for file in self.subdomain_dict_file_list:
+        for file in self.__subdomain_dict_file_list:
             result = aioDNSBrute().run(wordlist=file, domain=self.domain, resolvers=dns_server_list, verify=False)
             aiodnsbrute_result_list.extend(result)
         return aiodnsbrute_result_list
@@ -108,7 +108,7 @@ class DomainScan(object):
         :return:
         """
         wildcard_lookup_result_set = set()
-        result = aioDNSBrute().run(wordlist=self.wildcard_dict_path, domain=self.domain, resolvers=dns_server_list,
+        result = aioDNSBrute().run(wordlist=self.__wildcard_dict_path, domain=self.domain, resolvers=dns_server_list,
                                    verify=False)
         for item in result:
             wildcard_lookup_result_set.add("".join(item.get("ip")))
@@ -122,7 +122,8 @@ class DomainScan(object):
         """
         pass
 
-    def __parse_result(self, item_ip, subdomain_wildcard_result):
+    @staticmethod
+    def __parse_result(item_ip, subdomain_wildcard_result):
         """
         处理解析结果
         :param item_ip:
