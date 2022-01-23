@@ -1,6 +1,5 @@
 import os
 import subprocess
-import uuid
 from multiprocessing import cpu_count
 import math
 from config import *
@@ -103,10 +102,11 @@ class DomainScan(object):
         :return:
         """
         wildcard_lookup_result_set = set()
-        result = aioDNSBrute().run(wordlist=self.wildcard_dict_path, domain=self.domain, resolvers=dns_server_list, verify=False)
-        print(result)
-
-
+        result = aioDNSBrute().run(wordlist=self.wildcard_dict_path, domain=self.domain, resolvers=dns_server_list,
+                                   verify=False)
+        for item in result:
+            wildcard_lookup_result_set.add("".join(item.get("ip")))
+        return wildcard_lookup_result_set
 
     def subdomain_api(self):
         """
@@ -116,14 +116,43 @@ class DomainScan(object):
         """
         pass
 
+    def __parse_result(self, item_ip, subdomain_wildcard_result):
+        """
+        处理解析结果
+        :param item_ip:
+        :return:
+        """
+
+        for ip in item_ip:
+            if ip in subdomain_wildcard_result:
+                return ip
+
     def run(self):
-        pass
+        result_list = []
+        subdomain_brute_result = self.subdomain_brute()
+        subdomain_wildcard_result = self.subdomain_wildcard_lookup()
+        for item in subdomain_brute_result:
+            item_ip = item.get("ip")
+            parse_result = self.__parse_result(item_ip, subdomain_wildcard_result)
+            if parse_result:
+                item_ip.remove(parse_result)
+            if not item_ip:
+                continue
+            elif item_ip and len(item_ip) > 1:
+                subdomain_flag = "CDN"
+
+            else:
+                subdomain_flag = "NORMAL"
+            result_list.append({"subdomain": item.get("domain"), "ip": item_ip, "subdomain_flag": subdomain_flag})
+
+        return {"result": result_list}
 
 
 def main(domain):
-    # result = DomainScan(domain=domain).subdomain_brute()
-    result = DomainScan(domain=domain).subdomain_wildcard_lookup()
-    print(result)
+    d = DomainScan(domain=domain)
+    import json
+    print(json.dumps(d.run()))
+    # d.run()
 
 
 if __name__ == '__main__':
