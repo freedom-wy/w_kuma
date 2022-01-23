@@ -14,9 +14,16 @@ class SingleSubDomainData(object):
     """
 
     def __init__(self, subdomain_info):
-        self.subdomain = subdomain_info.get("subdomain")
-        self.ip = ",".join(subdomain_info.get("ip"))
-        self.subdomain_flag = subdomain_info.get("subdomain_flag")
+        self.subdomain = subdomain_info.get("domain")
+        self.ip = subdomain_info.get("ip")
+        self.subdomain_flag = self.__parse_flag(subdomain_info.get("ip"))
+
+    @staticmethod
+    def __parse_flag(item):
+        subdomain_flag = "NORMAL"
+        if item and len(item) > 1:
+            subdomain_flag = "CDN"
+        return subdomain_flag
 
 
 class CollectionSubDomainData(object):
@@ -33,7 +40,6 @@ class CollectionSubDomainData(object):
 
 class DomainScan(object):
     def __init__(self, domain):
-        self.result = {}
         self.domain = domain
         # 工作目录
         self.work_dir = os.path.dirname(os.path.abspath(__file__))
@@ -138,22 +144,19 @@ class DomainScan(object):
                 item_ip.remove(parse_result)
             if not item_ip:
                 continue
-            elif item_ip and len(item_ip) > 1:
-                subdomain_flag = "CDN"
-
-            else:
-                subdomain_flag = "NORMAL"
-            result_list.append({"subdomain": item.get("domain"), "ip": item_ip, "subdomain_flag": subdomain_flag})
+            result_list.append({"domain": item.get("domain"), "ip": item_ip})
 
         return {"result": result_list}
 
 
-def main(domain):
-    d = DomainScan(domain=domain)
-    import json
-    print(json.dumps(d.run()))
-    # d.run()
-
-
 if __name__ == '__main__':
-    main(domain="taobao.com")
+    # 子域名爆破
+    # d = DomainScan(domain="taobao.com").subdomain_brute()
+    # 泛解析
+    # d = DomainScan(domain="taobao.com").subdomain_wildcard_lookup()
+    # 合并子域名爆破和泛解析结果
+    datas = DomainScan(domain="taobao.com").run()
+    subdomains_data = CollectionSubDomainData()
+    subdomains_data.fill(datas, domain="taobao.com")
+    for item in subdomains_data.subdomains:
+        print(item.subdomain, item.ip, item.subdomain_flag)
