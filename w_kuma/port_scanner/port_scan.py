@@ -26,17 +26,18 @@ class PortScanner(object):
         cmd = "{masscan} -p {portinfo} {ipinfo} --rate={rate} -oX {outfile}".format(
             masscan=self.__masscan_program, portinfo=self.portinfo, ipinfo=self.ipinfo, rate=masscan_scan_rate, outfile=self.__outfile)
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        if stderr:
-            print(stderr)
-            return
         # 判断masscan进程状态
         while True:
             process_status = process.poll()
+            # 进程不存在
+            if isinstance(process_status, int) and process_status > ProcessStatusEnum.End.value:
+                stdout, stderr = process.communicate()
+                print(stderr)
+                return
             # 进程正常结束退出
-            if ProcessStatus(process_status).status == ProcessStatusEnum.End:
+            elif ProcessStatus(process_status).status == ProcessStatusEnum.End:
                 # 处理masscan扫描结果文件
-                pass
+                break
             # 进程仍在运行
             elif ProcessStatus(process_status).status == ProcessStatusEnum.Running:
                 time.sleep(1)
