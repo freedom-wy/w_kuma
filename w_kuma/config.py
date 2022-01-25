@@ -25,3 +25,5 @@ dns_server_list = [
 masscan_scan_size = 500
 # masscan扫描速率
 masscan_scan_rate = 10000
+# masscan可执行程序路径,绝对路径/xxx/xxx/masscan
+masscan_bin = ""
