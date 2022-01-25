@@ -10,6 +10,7 @@ from w_kuma.config import *
 import subprocess
 from w_kuma.libs.process_utils import ProcessStatus, ProcessStatusEnum
 import json
+from w_kuma.libs.venv_utils import check_root
 
 
 class PortScanner(object):
@@ -31,7 +32,7 @@ class PortScanner(object):
 
     def __parse_masscan_outfile(self):
         temp = []
-        with open("test.json", "r", encoding="utf-8") as f:
+        with open(self.__outfile, "r", encoding="utf-8") as f:
             source_data = f.readlines()
         for line in source_data:
             line = self.__cut_data(line)
@@ -81,11 +82,14 @@ class PortScanner(object):
         self.portscan()
 
 
-def main(ipinfo="127.0.0.1", portinfo="1-1024"):
+def main(ipinfo, portinfo="1-65535"):
+    if not check_root():
+        return
     p = PortScanner(ipinfo=ipinfo, portinfo=portinfo)
     p.run()
     print(json.dumps(p.datas))
 
 
 if __name__ == '__main__':
-    main()
+    # 输入待扫描IP
+    main(ipinfo="127.0.0.1")
