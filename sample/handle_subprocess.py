@@ -1,41 +1,34 @@
-# import subprocess
-#
-# process = subprocess.Popen(["python", "test.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-# while True:
-#     process_return = process.poll()
-#     print(process_return)
+import subprocess
 
-from enum import Enum
-
-
-class VIP(Enum):
-    """
-    定义一个类继承枚举类
-    """
-    YELLOW = 1
-    GREEN = 2
-    BLACK = 3
-    RED = 4
-    # RED = 5 报错，相同的常量
-    # 枚举类特点1、不能修改枚举类中常量值，枚举类中常量值不能相同
-
-
-print(VIP.YELLOW == 1)  # False
-print(VIP.YELLOW == VIP(1))  # True
-
-# print(VIP.YELLOW, type(VIP.YELLOW))
-# print(VIP.YELLOW.name, type(VIP.YELLOW.name))
-# print(VIP.YELLOW.value, type(VIP.YELLOW.value))
-# VIP.YELLOW = 5 报错
-
-
-# class VIP1(Enum):
-#     YELLOW = 1
-#     GREEN = 2
-#     BLACK = 3
-#     RED = 4
-
-
-# print(VIP.YELLOW == VIP.GREEN)  # False
-# print(VIP.GREEN == VIP.GREEN)  # True
-# print(VIP.GREEN == VIP1.GREEN)  # False
+# check用于捕获异常
+# process = subprocess.run("exit 1", shell=True, check=True)
+# capture_output用于捕获stdout和stderr
+# process = subprocess.run("ls -l", shell=True, check=True, capture_output=True)
+# print(process.stdout.decode())
+# 当子进程运行超时时可以通过subprocess.TimeoutExpired捕获,捕获后可以通过.stdout查看超时前输出
+# try:
+#     process = subprocess.run("python test.py".split(), capture_output=True, timeout=2)
+# except subprocess.TimeoutExpired as e:
+#     # print(e.output.decode())
+#     print(e.stdout.decode())
+# 子进程异常可通过subprocess.CalledProcessError捕获
+# try:
+#     process = subprocess.run("exit 1", shell=True, check=True)
+# except subprocess.CalledProcessError as e:
+#     print(e.stderr)
+# 更高级的subprocess,使用subprocess.Popen
+# process = subprocess.Popen(args="python test.py", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+# # 查看进程是否结束,如果正在运行返回None,否则返回returncode
+# print(process.poll())
+# print(process.stdout.read().decode())
+# process = subprocess.Popen(args="python test.py", shell=True,
+#                                stdout=subprocess.PIPE,
+#                                stderr=subprocess.PIPE
+#                                )
+# print(process.poll())
+# process.kill()
+# process.terminate()
+p = subprocess.Popen('xargs ls', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+outs, errs = p.communicate(input='/Users/niulanshan'.encode())
+# print(p.args)
+print(outs.decode())
