@@ -10,8 +10,8 @@ from w_kuma.config import *
 import subprocess
 from w_kuma.libs.process_utils import ProcessStatus, ProcessStatusEnum
 import json
-from w_kuma.libs.venv_utils import check_root
-from .service_probe import ServiceProbe
+from w_kuma.libs.venv_utils import check_operate_env
+from w_kuma.port_scanner.service_probe import ServiceProbe
 
 
 class PortScanner(object):
@@ -76,7 +76,7 @@ class PortScanner(object):
         cmd = "{masscan} -p {portinfo} {ipinfo} --rate={rate} -oJ {outfile}".format(
             masscan=self.__masscan_program, portinfo=self.portinfo, ipinfo=self.ipinfo, rate=masscan_scan_rate,
             outfile=self.__outfile)
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        process = subprocess.Popen(args=cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         # 判断masscan进程状态
         while True:
             process_status = process.poll()
@@ -102,7 +102,7 @@ class PortScanner(object):
     def __parse_service_info(port_info, service_info):
         temp = port_info
         for i2 in temp.get("ports"):
-            for k, v in service_info.get("scan").get(i2.get("ip")).get("tcp").items():
+            for k, v in service_info.get("scan").get(temp.get("ip")).get("tcp").items():
                 if int(k) == i2.get("port"):
                     i2["name"] = v.get("name")
                     i2["product"] = v.get("product")
@@ -113,15 +113,16 @@ class PortScanner(object):
     def run(self):
         self.portscan()
         for item in self.ip_port_status:
+            # 探测端口服务
             service_info = ServiceProbe(item.get("ip"), portinfo=[
                 str(port.get("port")) for port in item.get("ports")]).service_probe()
-            result = self.__parse_service_info(port_info=item, service_info=service_info)
-            print(result)
-            break
+            # 处理数据
+            self.__parse_service_info(port_info=item, service_info=service_info)
 
 
 def main(ipinfo, portinfo="1-65535"):
-    if not check_root():
+    if not check_operate_env(target=ipinfo):
+        print("运行环境或探测目标不满足要求")
         return
     p = PortScanner(ipinfo=ipinfo, portinfo=portinfo)
     p.run()
