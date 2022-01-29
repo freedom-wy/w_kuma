@@ -136,8 +136,11 @@ class DomainScan(object):
 
     def run(self):
         result_list = []
+        # 子域名解析
         subdomain_brute_result = self.subdomain_brute()
+        # 泛解析
         subdomain_wildcard_result = self.subdomain_wildcard_lookup()
+        # 将泛解析结果去除
         for item in subdomain_brute_result:
             item_ip = item.get("ip")
             parse_result = self.__parse_result(item_ip, subdomain_wildcard_result)
