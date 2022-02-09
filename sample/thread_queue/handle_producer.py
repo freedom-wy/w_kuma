@@ -2,15 +2,15 @@ from handle_queue import RedisQueue
 
 
 class Producer(RedisQueue):
-    def __init__(self, keys):
-        RedisQueue.__init__(self)
+    def __init__(self, keys, name):
+        RedisQueue.__init__(self, name)
         self.keys = keys
 
-    def do(self):
-        for i in range(1, 6):
+    def run(self):
+        for i in range(1, 101):
             self.rpush(keys=self.keys, data=i)
 
 
 if __name__ == '__main__':
-    p = Producer(keys="test1")
-    p.do()
+    p = Producer(keys="test1", name="生产者")
+    p.start()
