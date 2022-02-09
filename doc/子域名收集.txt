@@ -1,0 +1,12 @@
+1、通过搜索引擎查询,google/baidu site:yase.me
+2、通过网络空间搜索api查询 fofa,zoomeye,shodan,censys.io,dnsdb.io,virustotal.com,threatbook.cn
+3、通过字典暴力猜解
+4、通过域传送漏洞,kali中的工具fierce,该漏洞极少,fierce也可以进行子域名爆破
+5、通过passive dns数据
+6、通过https证书
+（1）、https://search.censys.io/certificates?q=yase.me
+（2）、https://crt.sh/?q=yase.me
+7、通过whois信息获取
+
+
+
