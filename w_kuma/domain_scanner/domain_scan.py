@@ -6,6 +6,7 @@ from w_kuma.config import *
 from w_kuma.libs.venv_utils import is_venv
 import sys
 from aiodnsbrute.cli import aioDNSBrute
+from w_kuma.domain_scanner.search_api.zoomeye_api import ZoomeyeApi
 
 
 class SingleSubDomainData(object):
@@ -114,14 +115,6 @@ class DomainScan(object):
             wildcard_lookup_result_set.add("".join(item.get("ip")))
         return wildcard_lookup_result_set
 
-    def subdomain_api(self):
-        """
-        通过API接口获取
-        :param domain:
-        :return:
-        """
-        pass
-
     @staticmethod
     def __parse_result(item_ip, subdomain_wildcard_result):
         """
@@ -134,21 +127,42 @@ class DomainScan(object):
             if ip in subdomain_wildcard_result:
                 return ip
 
+    @staticmethod
+    def __parse_api_result(subdomain_brute_result, subdomain_api_result):
+        tmp = subdomain_brute_result
+        brute_subdomain_set = set()
+        for brute_item in tmp:
+            brute_subdomain_set.add(brute_item.get("domain"))
+        for api_item in subdomain_api_result[:]:
+            if api_item.get("name") in brute_subdomain_set:
+                subdomain_api_result.remove(api_item)
+        for item in subdomain_api_result:
+            item["domain"] = item.get("name")
+            del item["timestamp"]
+            del item["name"]
+            tmp.append(item)
+        return tmp
+
     def run(self):
         result_list = []
         # 子域名解析
         subdomain_brute_result = self.subdomain_brute()
         # 泛解析
         subdomain_wildcard_result = self.subdomain_wildcard_lookup()
+        # 通过api接口获取子域名
+        z = ZoomeyeApi()
+        z.search_by_zoomeye(query=self.domain)
+        subdomain_api_result = z.datas
+        # 合并爆破和api结果
+        collection_datas = self.__parse_api_result(subdomain_brute_result, subdomain_api_result)
         # 将泛解析结果去除
-        for item in subdomain_brute_result:
+        for item in collection_datas:
             item_ip = item.get("ip")
             parse_result = self.__parse_result(item_ip, subdomain_wildcard_result)
             if parse_result:
                 item_ip.remove(parse_result)
-            if not item_ip:
-                continue
-            result_list.append({"domain": item.get("domain"), "ip": item_ip})
+            if item_ip:
+                result_list.append({"domain": item.get("domain"), "ip": item_ip})
 
         return {"result": result_list}
 
@@ -159,8 +173,8 @@ if __name__ == '__main__':
     # 泛解析
     # d = DomainScan(domain="taobao.com").subdomain_wildcard_lookup()
     # 合并子域名爆破和泛解析结果
-    datas = DomainScan(domain="taobao.com").run()
+    datas = DomainScan(domain="yase.me").run()
     subdomains_data = CollectionSubDomainData()
-    subdomains_data.fill(datas, domain="taobao.com")
+    subdomains_data.fill(datas, domain="yase.me")
     for item in subdomains_data.subdomains:
         print(item.subdomain, item.ip, item.subdomain_flag)

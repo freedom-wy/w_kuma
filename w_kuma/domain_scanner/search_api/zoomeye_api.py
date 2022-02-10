@@ -1,6 +1,6 @@
 from w_kuma.libs.handle_request_http import HTTP
 from w_kuma.config import zoomeye_api
-from w_kuma.libs.handle_thread import ThreadRequest
+# from w_kuma.libs.handle_thread import ThreadRequest
 
 
 class ZoomeyeApi(object):
@@ -46,4 +46,7 @@ class ZoomeyeApi(object):
 
 
 if __name__ == '__main__':
-    ZoomeyeApi().search_by_zoomeye(query="360.cn")
+    import json
+    z = ZoomeyeApi()
+    z.search_by_zoomeye(query="360.cn")
+    print(json.dumps(z.datas))
