@@ -19,6 +19,8 @@ dns_server_list = [
     "119.29.29.29", "182.254.116.116", "180.76.76.76", "223.5.5.5", "223.6.6.6",
     "114.114.114.114", "114.114.115.115", "8.8.8.8", "8.8.4.4"
 ]
+# zoomeye api接口
+zoomeye_api = "https://api.zoomeye.org/domain/search?q={}&type=1&page={}"
 
 # 端口扫描
 # masscan每次扫描IP数量

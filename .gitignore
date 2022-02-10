@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 .venv/
 .idea/
-secure_config.py
+w_kuma/secure_config.py
